@@ -1,26 +1,8 @@
 import Foundation
-import CoreGraphics
 
-/*
- Bank Account Manager
- User Story
- As a user, I should be able to create a new person✅
- As a user, I should be able to create a new account✅
- As a user, I should be able to display all accounts✅
- As a user, I should be able to deposit money✅
- As a user, I should be able to withdraw money✅
- As a user, I should be able to delete account✅
- As a user, I should be able to sort by date
- As a user, I should be able to transfare money to other person
- 
- ************ enum , extend sort,
- vip costumer can make tracaction more than normal account
- */
 
 class Person {
-    /*
-     # removeAccount: try catch
-     */
+    
     var name : String
     var accounts = [Account]() // array of Account struct
     
@@ -30,17 +12,20 @@ class Person {
     }
     
     func getAllAccounts() {
-        // add try catch
-        self.accounts.map{ account in // loop to display each account in accounts array
-            print("\(name) has account in \(account.name) with Amount of \(account.amount)")
+        if self.accounts.isEmpty { // check accounts array
+            print("Person not exist")
+        }else{
+            self.accounts.map{ account in // loop to display each account in accounts array
+                print("\(name) has account in \(account.name) with Amount of \(account.amount)")
+            }
+            print("Total Amount is: \(getTotalAmounts())")
         }
-        print("Total Amount is: \(getTotalAmounts())")
     }
     
     func addAccount(newAccount: Account){ // add a new account to accounts array
         accounts.append(newAccount)
     }
-    func getTotalAmounts() -> Double {//??? print total amount person has more than 1  account
+    func getTotalAmounts() -> Double {// print total amount
         let numAccount:Double
         if accounts.count > 1 {
             numAccount = accounts.map{$0.amount}.reduce(0, {$0 + $1})
@@ -56,6 +41,8 @@ class Person {
     }
     func removeAccount(id: Int){ // remove account by id
         guard let index = findIndexBy(id: id) else { return  }
+        
+        print("\(accounts[index].name) Account is deleted")
         accounts.remove(at: index)
     }
     
@@ -64,101 +51,183 @@ class Person {
 
 struct Transaction{
     var id: Int, amount: Double, date: Date
-    init(id: Int, amount: Double, date: Date) {
+    init(id: Int, amount: Double, date: Date = Date()) {
         self.id = id
         self.amount = amount
-        self.date = Date()
+        self.date = date
     }
 }
 
- struct Account {
-     /* to do:
-      @ date
-      @ account type: enum personal, business, saving
-      # tranactions to other person : cash , online
-      
-      */
-     
-     var transactions = [Transaction]()
-     enum AccountType {
-         case normal
-         case VIP
-     }
-     var id: Int
-     var name : String, password: String
-     var amount : Double
-     var type : AccountType
-     
-     init(id: Int, name: String, amount: Double){ // id should be uniqe
-         self.id = id
-         self.name = name
-         self.password = "Password"
-         self.amount = amount
-         self.type = .normal
-     }
-     func getAccount(){ // display account name and amount
-         print("Account name: \(name), Amount: \(amount)")
-     }
-     
-     private mutating func addTransaction(newTrans: Transaction){
-         transactions.append(newTrans)
-     }
-     mutating func deposit(transaction: Transaction) { // add money to amount
+struct Account {
+    
+    private var transactions = [Transaction]()
+    enum AccountType { case normal, VIP }
+    var id: Int
+    var name : String, password: String
+    var amount : Double
+    var type : AccountType
+    
+    init(id: Int, name: String, amount: Double){
+        self.id = id
+        self.name = name
+        self.password = "Password"
+        self.amount = amount
+        self.type = .normal
+        checkType()
+    }
+    private mutating func checkType(){ // tuggle between AccountType enum
+        if amount < 1000000 {
+            type = .normal
+        } else { type = .VIP }
+    }
+    func getAccount(password: String){ // display account name and amount
+        if checkPassword(password: password) {
+            print("Account name: \(name), Amount: \(amount)")
+        } else { print("Password Not Valid!!") }
+        
+    }
+    
+    private mutating func addTransaction(newTrans: Transaction){
+        transactions.append(newTrans)
+    }
+    mutating func deposit(transaction: Transaction) { // add money to amount
         addTransaction(newTrans: transaction)
-         amount += transaction.amount
+        amount += transaction.amount
         print("Total amount in your \(name) account is \(amount)")
     }
-    mutating func withdraw(transaction: Transaction) { // add money to amount
-        // if no money
-        addTransaction(newTrans: transaction)
-         amount -= transaction.amount
+    mutating func withdraw(transaction: Transaction, password: String) { // Deduct money from amount
+        
+        if checkPassword(password: password) && checkPalance(amount: transaction.amount){
+            switch type {
+            case .normal:
+                if transaction.amount <= 10000 {
+                    addTransaction(newTrans: transaction)
+                    amount -= transaction.amount
+                } else { print("Maximum limit is 10000")}
+                
+            case .VIP:
+                addTransaction(newTrans: transaction)
+                amount -= transaction.amount
+            }
+            
+        } else { print("Transaction Not Accepted")}
+        
         print("Total amount in your \(name) account is \(amount)")
     }
-     //  password: String,type: AccountType
-     func setPassword(password: String) {
-         print(chekPassword(password: password) ? password : "Password Not Valid!!")
-         
-     }
-     func chekPassword(password: String) -> Bool{
-         // regex : Password must be more than 6 characters, with at least one capital, numeric or special character
-         let passwordRegEx = "(?:(?:(?=.*?[0-9])(?=.*?[-!@#$%&*ˆ+=_])|(?:(?=.*?[0-9])|(?=.*?[A-Z])|(?=.*?[-!@#$%&*ˆ+=_])))|(?=.*?[a-z])(?=.*?[0-9])(?=.*?[-!@#$%&*ˆ+=_]))[A-Za-z0-9-!@#$%&*ˆ+=_]{6,15}"
-         let passwordTest = NSPredicate(format: "SELF MATCHES %@", passwordRegEx)
-         return passwordTest.evaluate(with: password)
-     }
+    
+    func getAllTransactions(){ // dispaly all transaction
+        print("Transaction in \(name) Account:")
+        transactions.map{
+            print("ID: \($0.id) Palance: \($0.amount) Date: \(date_format(date: $0.date))")
+        }
+    }
+    
+    mutating func setPassword(password: String) {
+        if isValidPassword(password: password) {
+            print("Password is Accepted")
+            self.password = password
+        } else { print("Password Not Accepted. Password must be more than 6 characters, with at least one capital, numeric or special character ")}
+    }
+    
+    private func isValidPassword(password: String) -> Bool{
+        // regex : Password must be more than 6 characters, with at least one capital, numeric or special character
+        let passwordRegEx = "(?:(?:(?=.*?[0-9])(?=.*?[-!@#$%&*ˆ+=_])|(?:(?=.*?[0-9])|(?=.*?[A-Z])|(?=.*?[-!@#$%&*ˆ+=_])))|(?=.*?[a-z])(?=.*?[0-9])(?=.*?[-!@#$%&*ˆ+=_]))[A-Za-z0-9-!@#$%&*ˆ+=_]{6,15}"
+        let passwordTest = NSPredicate(format: "SELF MATCHES %@", passwordRegEx)
+        return passwordTest.evaluate(with: password)
+    }
+    
+    private func checkPassword(password: String) -> Bool{
+        return self.password == password
+    }
+    private func checkPalance(amount: Double) -> Bool{
+        return self.amount > amount
+    }
+    func date_format(date: Date ) -> String {
+        let dateFormatterGet = DateFormatter()
+        dateFormatterGet.dateFormat = "dd/MM/yyyy HH:mm"
+        
+        return dateFormatterGet.string(from: date)
+    }
+    
 }
-
-
 
 var abdullah = Person(name: "Abdullah") // create Person instance
-
-var ahli = Account(id: 101, name: "Al-Ahli", amount: 20000.79) //create Account instance
-var rajhi = Account(id: 102, name: "Al-Rajhi", amount: 5000.35)
+/* create Account instance */
+var ahli = Account(id: 101, name: "Al-Ahli", amount: 2000000.79)
+var rajhi = Account(id: 102, name: "Al-Rajhi", amount: 50000.35)
 var belad = Account(id: 103, name: "Al-Belad", amount: 200.50)
 
+/* Add Account to person instance */
 abdullah.addAccount(newAccount: ahli)
 abdullah.addAccount(newAccount: rajhi)
 abdullah.addAccount(newAccount: belad)
 abdullah.getAllAccounts()
-//abdullah.accounts[0].deposit(money: 300) //deposit from Person instance
 
+/* set and test Password*/
+ahli.getAccount(password: "Password") // default Password
 rajhi.setPassword(password: "Abc1228")
-rajhi.withdraw(transaction: Transaction(id: 01, amount: 500, date: Date()))
 
-//abdullah.getAllAmounts()
+/* make transaction and test it */
+var transaction1 = Transaction(id: 01, amount: 10001) // test transaction more than 10000
+var transaction2 = Transaction(id: 02, amount: 500)
+var transaction3 = Transaction(id: 03, amount: 6000)
+
+/*  Add extension to Account to sort transactions */
+extension Account {
+    func sortedTransaction(){
+        
+        let sortedTr = self.transactions.sorted{
+            $0.date < $1.date
+        }
+        
+        sortedTr.map{
+            print("ID: \($0.id) Palance: \($0.amount) Date: \(date_format(date: $0.date))")
+        }
+    }
+}
+
+/* test sorted transaction */
+var today = Date()
+
+var formatter = DateFormatter()
+formatter.dateFormat = "dd/MM/yyyy HH:mm"
+formatter.timeZone = .current
+
+var date1 = Calendar.current.date(byAdding: .year, value: 2, to: today)!
+var date2 = Calendar.current.date(byAdding: .day, value:  -2, to: today)!
+var date3 = Calendar.current.date(byAdding: .day, value:  -3, to: today)!
+var date4 = Calendar.current.date(byAdding: .day, value:  1, to: today)!
+var date5 = Calendar.current.date(byAdding: .month, value: -5, to: today)!
+
+
+var transaction4 = Transaction(id: 04, amount: 6000, date: date2)
+var transaction5 = Transaction(id: 05, amount: 6000, date: date1)
+var transaction6 = Transaction(id: 06, amount: 6000, date: date5)
+
+
+rajhi.withdraw(transaction: Transaction(id: 04, amount: 200), password: "Abc1228")
+rajhi.withdraw(transaction: transaction1, password: "Abc1228")
+rajhi.withdraw(transaction: transaction2, password: "Abc1228")
+rajhi.withdraw(transaction: transaction3, password: "Abc1228")
+
+ahli.deposit(transaction: transaction4)
+
+ahli.deposit(transaction: transaction5)
+
+ahli.deposit(transaction: transaction6)
+
+ahli.withdraw(transaction: transaction1, password: "Password")
+
+ahli.withdraw(transaction: transaction2, password: "Password")
+
+// check Account Type
+rajhi.type
+ahli.type
 
 // remove account
-abdullah.removeAccount(id: 10)
-//abdullah.getAllAccounts()
-//print(abdullah.accounts.firstIndex(where: {$0.name == "Al-Rajhi"})!)
+abdullah.removeAccount(id: 10) // not existed id
+abdullah.removeAccount(id: 103)
+abdullah.getAllAccounts() // check all accounts
 
-var ali = Person(name: "Ali")
-var jazira = Account(id: 104, name: "Al-Jazira", amount: 400)
-ali.addAccount(newAccount: jazira)
-//
-ali.getAllAccounts()
-ali.getTotalAmounts()
 
-/* test transaction */
-abdullah.accounts[0].deposit( transaction: Transaction(id: 1, amount: 99, date: Date()))
-//let findAccount = abdullah.accounts.filter{$0.name == "Al-Rajhi"}
-//findAccount[0].amount
+ahli.sortedTransaction()
