@@ -1,5 +1,5 @@
 # Bank-Account-Manager
-Simple bank account manager created by Swift. 
+Simple bank account manager created with Swift. 
 
 ## General info
 This project is implemented to help users to manage their accounts and transactions.
