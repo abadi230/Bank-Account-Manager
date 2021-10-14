@@ -11,6 +11,7 @@ This project is implemented to help users to manage their accounts and transacti
 * User can Display all Accounts
 * User can Display total balance in all accounts
 * User can Remove account
+* user can update account
 * User can set a password for each account
 * User can display a specific account and make a transaction (Deposit and Withdraw) while the password is correct 
 * User can display all transactions
